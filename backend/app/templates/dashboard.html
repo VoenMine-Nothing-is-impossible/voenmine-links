@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Кабинет — VoenMine Links{% endblock %}
+{% block content %}
+<section class="dash">
+  <h2>Личный кабинет</h2>
+  <div class="dash-bar">
+    <input id="d-q" placeholder="Поиск по коду/URL…">
+    <select id="d-status">
+      <option value="all">Все статусы</option>
+      <option value="active">Активные</option>
+      <option value="expired">Истекшие</option>
+      <option value="limited">Лимит исчерпан</option>
+    </select>
+    <input id="d-tag" placeholder="Метка…">
+    <button id="d-reload" class="btn small">Обновить</button>
+    <button id="d-key" class="btn small">+ API-ключ</button>
+    <button id="d-logout" class="btn small">Выйти</button>
+  </div>
+  <div id="d-list" class="link-list"></div>
+  <div id="d-stats" class="stats hidden"></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const T = () => localStorage.getItem('token') || '';
+if (!T()) location.href = '/login';
+async function load() {
+  const q = document.getElementById('d-q').value, s = document.getElementById('d-status').value, tag = document.getElementById('d-tag').value;
+  const u = new URLSearchParams({status: s}); if (q) u.set('q', q); if (tag) u.set('tag', tag);
+  const r = await fetch('/api/links?' + u, {headers: {Authorization: 'Bearer ' + T()}});
+  const box = document.getElementById('d-list');
+  if (r.status === 401) { location.href = '/login'; return; }
+  const j = await r.json();
+  if (!j.length) { box.innerHTML = '<p class="sub">Пока пусто. Создайте первую ссылку на главной.</p>'; return; }
+  box.innerHTML = j.map(l => `<div class="link-card">
+    <div><b>/${l.code}</b> <span class="muted">${l.is_active ? '🟢' : '🔴'} ${l.clicks_count} кликов${l.max_clicks ? '/' + l.max_clicks : ''}</span></div>
+    <div class="mono small">${l.target_url}</div>
+    <div class="muted small">short: ${l.short_url} ${l.has_password ? '🔒' : ''} ${l.is_paid ? '💳 ' + l.price_amount : ''} ${l.expires_at ? '⏳ ' + l.expires_at : ''} ${(l.tags||[]).map(t=>'#'+t).join(' ')}</div>
+    <div class="row">
+      <a class="btn small" href="/qr/${l.code}.png" target="_blank">QR PNG</a>
+      <a class="btn small" href="/qr/${l.code}.svg" target="_blank">QR SVG</a>
+      <button class="btn small" onclick="stats('${l.code}')">📊 Статистика</button>
+      <button class="btn small danger" onclick="delLink('${l.code}')">Удалить</button>
+    </div></div>`).join('');
+}
+async function stats(code) {
+  const r = await fetch(`/api/links/${code}/stats`, {headers: {Authorization: 'Bearer ' + T()}});
+  const j = await r.json();
+  const box = document.getElementById('d-stats');
+  box.classList.remove('hidden');
+  box.innerHTML = `<h3>/${code} — всего ${j.total}</h3>
+    <p class="muted">По дням: ${(j.by_day||[]).map(d=>d.date+': '+d.count).join(', ')||'—'}</p>
+    <p class="muted">Браузеры: ${JSON.stringify(j.by_browser||{})}</p>
+    <p class="muted">ОС: ${JSON.stringify(j.by_os||{})}</p>
+    <p class="muted">Устройства: ${JSON.stringify(j.by_device||{})}</p>
+    <p class="muted">Гео: ${JSON.stringify(j.by_country||{})}</p>
+    <p class="muted">Источники: ${JSON.stringify(j.by_referrer||{})}</p>`;
+  box.scrollIntoView();
+}
+async function delLink(code) {
+  if (!confirm('Удалить /' + code + '?')) return;
+  await fetch('/api/links/' + code, {method: 'DELETE', headers: {Authorization: 'Bearer ' + T()}});
+  load();
+}
+document.getElementById('d-reload').onclick = load;
+document.getElementById('d-logout').onclick = () => { localStorage.removeItem('token'); location.href='/'; };
+document.getElementById('d-key').onclick = async () => {
+  const r = await fetch('/api/keys', {method:'POST', headers:{'Content-Type':'application/json', Authorization:'Bearer '+T()}, body: JSON.stringify({name:'default'})});
+  alert(JSON.stringify(await r.json()));
+};
+load();
+</script>
+{% endblock %}

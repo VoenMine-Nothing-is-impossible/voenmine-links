@@ -1,0 +1,103 @@
+services:
+  app:
+    build: ./backend
+    container_name: links-app
+    restart: unless-stopped
+    ports:
+      - "8096:8096"
+    env_file:
+      - .env
+    environment:
+      - APP_PORT=8096
+    volumes:
+      - qr_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - links-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8096/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # Traefik: раскомментируйте внешнюю сеть своего proxy при необходимости.
+    # networks:
+    #   links-net:
+    #   proxy:
+    #     external: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.links.rule=Host(`${DOMAIN:-links.example.com}`)"
+      - "traefik.http.routers.links.entrypoints=websecure"
+      - "traefik.http.routers.links.tls.certresolver=le"
+      - "traefik.http.services.links.loadbalancer.server.port=8096"
+
+  frontend:
+    build: ./frontend
+    container_name: links-frontend
+    restart: unless-stopped
+    ports:
+      - "8097:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8096}
+    depends_on:
+      - app
+    networks:
+      - links-net
+    profiles:
+      - frontend
+    labels:
+      - "traefik.enable=false"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: links-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-links}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-links}
+      - POSTGRES_DB=${POSTGRES_DB:-links}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - links-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-links}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: links-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - links-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pg_data:
+    driver: local
+  redis_data:
+    driver: local
+  qr_data:
+    driver: local
+
+networks:
+  links-net:
+    driver: bridge
+  # proxy:
+  #   external: true

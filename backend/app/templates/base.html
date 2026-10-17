@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}VoenMine Links — сократитель ссылок{% endblock %}</title>
+{% if og_title %}<meta property="og:title" content="{{ og_title }}">{% endif %}
+{% if og_description %}<meta property="og:description" content="{{ og_description }}">{% endif %}
+{% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
+<link rel="stylesheet" href="/static/style.css">
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="/">🔗 VoenMine <span>Links</span></a>
+  <nav class="nav">
+    <a href="/">Главная</a>
+    <a href="/dashboard">Кабинет</a>
+    <a href="/api/docs">API</a>
+    <span id="auth-area"></span>
+  </nav>
+</header>
+<main class="wrap">
+{% block content %}{% endblock %}
+</main>
+<footer class="footer">©2022 - 2026 VoenMine | Нет ничего невозможного!</footer>
+<script src="/static/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

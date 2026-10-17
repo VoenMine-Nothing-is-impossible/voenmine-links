@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Ссылка истекла — VoenMine Links{% endblock %}
+{% block content %}
+<section class="gate">
+  <h2>⌛ Ссылка истекла</h2>
+  <p class="sub">Срок жизни вышел, лимит переходов исчерпан или ссылка отключена владельцем.</p>
+  {% if fallback %}<p><a class="btn primary" href="{{ fallback }}">Перейти на резервный адрес →</a></p>{% endif %}
+  <p><a class="btn" href="/">Создать новую ссылку</a></p>
+</section>
+{% endblock %}

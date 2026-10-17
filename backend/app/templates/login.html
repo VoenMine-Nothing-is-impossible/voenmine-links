@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Вход — VoenMine Links{% endblock %}
+{% block content %}
+<section class="gate">
+  <h2>Вход</h2>
+  <div class="form">
+    <input id="l-user" placeholder="Логин">
+    <input id="l-pass" type="password" placeholder="Пароль">
+    <button id="l-go" class="btn primary">Войти</button>
+    <div id="l-out" class="error hidden"></div>
+    <p class="sub">Нет аккаунта? <a href="/register">Регистрация</a></p>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('l-go').onclick = async () => {
+  const u = document.getElementById('l-user').value, p = document.getElementById('l-pass').value;
+  const r = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:u,password:p})});
+  const j = await r.json();
+  if (r.ok) { localStorage.setItem('token', j.access_token); location.href='/dashboard'; }
+  else { const o=document.getElementById('l-out'); o.classList.remove('hidden'); o.textContent=j.detail||'Ошибка'; }
+};
+</script>
+{% endblock %}

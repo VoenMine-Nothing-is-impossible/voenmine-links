@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Платный доступ — VoenMine Links{% endblock %}
+{% block content %}
+<section class="gate">
+  <h2>💳 Платный доступ</h2>
+  <p class="sub">Переход по <code>/{{ code }}</code> стоит <b>{{ amount }} {{ currency }}</b> (YooKassa).</p>
+  <div class="form">
+    <button id="btn-pay" class="btn primary">Оплатить {{ amount }} {{ currency }}</button>
+    <div id="pay-out"></div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('btn-pay').addEventListener('click', async () => {
+  const out = document.getElementById('pay-out');
+  out.textContent = 'Создаём платёж…';
+  const r = await fetch('/api/links/{{ code }}/pay', {method: 'POST'});
+  if (r.redirected) { location.href = r.url; return; }
+  const j = await r.json().catch(() => ({}));
+  if (j.confirmation_url) location.href = j.confirmation_url;
+  else out.textContent = JSON.stringify(j);
+});
+</script>
+{% endblock %}

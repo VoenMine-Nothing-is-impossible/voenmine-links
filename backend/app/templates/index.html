@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}VoenMine Links — сократитель ссылок{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>🔗 VoenMine Links</h1>
+  <p class="sub">Свой сократитель ссылок для самостоятельного хостинга. Быстро. Приватно. По-своему.</p>
+  <div class="shorten-box">
+    <input id="target" type="url" placeholder="Вставьте длинную ссылку…" autocomplete="off" spellcheck="false">
+    <button id="btn-shorten" class="btn primary">✂️ Сократить</button>
+  </div>
+  <div id="result" class="result hidden"></div>
+  <div class="pills">
+    <button class="pill" data-pane="pane-expire">⏳ Срок жизни</button>
+    <button class="pill" data-pane="pane-paid">💳 Платный доступ</button>
+    <button class="pill" data-pane="pane-pass">🔒 Пароль на ссылку</button>
+    <button class="pill" data-pane="pane-tags">🏷️ Метки</button>
+    <button class="pill" data-pane="pane-preview">👁️ Превью</button>
+    <button class="pill" data-pane="pane-limit">🔢 Лимит переходов</button>
+    <button class="pill" data-pane="pane-slug">✏️ Своё окончание</button>
+    <button class="pill" data-pane="pane-qr">📷 QR-код</button>
+    <button class="pill" data-pane="pane-track">📊 Трекеры</button>
+    <button class="pill" data-pane="pane-where">🧭 Куда ведёт</button>
+    <button class="pill" data-pane="pane-webhook">🔔 Вебхук на клик</button>
+  </div>
+  <div class="panes">
+    <div id="pane-expire" class="pane hidden">
+      <label>Срок жизни (дата истечения)</label>
+      <input id="f-expires" type="datetime-local">
+      <small>По истечении ссылка покажет страницу «ссылка истекла».</small>
+    </div>
+    <div id="pane-paid" class="pane hidden">
+      <label>Платный доступ — цена в рублях (YooKassa)</label>
+      <input id="f-price" type="number" min="0" step="0.01" placeholder="например, 49">
+      <small>Перед редиректом гость увидит страницу оплаты.</small>
+    </div>
+    <div id="pane-pass" class="pane hidden">
+      <label>Пароль на ссылку</label>
+      <input id="f-pass" type="password" placeholder="необязательно" autocomplete="new-password">
+      <small>Хранится только хеш (bcrypt). Без пароля редирект мгновенный.</small>
+    </div>
+    <div id="pane-tags" class="pane hidden">
+      <label>Метки (через запятую)</label>
+      <input id="f-tags" type="text" placeholder="promo, blog, qr">
+    </div>
+    <div id="pane-preview" class="pane hidden">
+      <label class="row"><input id="f-show-preview" type="checkbox"> Показывать превью перед редиректом</label>
+      <input id="f-og-title" type="text" placeholder="OG-заголовок">
+      <input id="f-og-desc" type="text" placeholder="OG-описание">
+      <input id="f-og-image" type="url" placeholder="OG-картинка (https://…)">
+    </div>
+    <div id="pane-limit" class="pane hidden">
+      <label>Лимит переходов</label>
+      <input id="f-max" type="number" min="1" step="1" placeholder="например, 100">
+      <small>Счётчик атомарный (Redis INCR). После лимита — страница «истекла» или резервный адрес.</small>
+    </div>
+    <div id="pane-slug" class="pane hidden">
+      <label>Своё окончание (мин. 7 символов, A–Z и 0–9)</label>
+      <input id="f-slug" type="text" placeholder="например, PROMO2026" maxlength="64" style="text-transform:uppercase">
+      <small>Системные пути (api, admin, static…) запрещены. Пусто = случайный код.</small>
+    </div>
+    <div id="pane-qr" class="pane hidden">
+      <label class="row"><input id="f-qr" type="checkbox" checked> Сгенерировать QR-код после сокращения</label>
+      <small>QR доступен как PNG/SVG: <code>/qr/КОД.png</code> — для скачивания.</small>
+    </div>
+    <div id="pane-track" class="pane hidden">
+      <label>Пиксель-трекеры промежуточной страницы</label>
+      <input id="f-ga" type="text" placeholder="Google Analytics ID (G-…)">
+      <input id="f-fb" type="text" placeholder="Facebook Pixel ID">
+      <input id="f-ym" type="text" placeholder="Yandex Metrika ID">
+      <label>Резервный адрес (куда ведёт, если основная недоступна)</label>
+      <input id="f-fallback" type="url" placeholder="https://…">
+    </div>
+    <div id="pane-where" class="pane hidden">
+      <label>Проверка «куда ведёт»</label>
+      <input id="f-check" type="text" placeholder="Вставьте короткий код, например ABC1234">
+      <button id="btn-check" class="btn small" type="button">Проверить</button>
+      <div id="check-out"></div>
+      <small>Сервис показывает целевой адрес до перехода + health-статус.</small>
+    </div>
+    <div id="pane-webhook" class="pane hidden">
+      <label>Вебхук на клик (HTTP POST при каждом переходе)</label>
+      <input id="f-webhook" type="url" placeholder="https://ваш-сервер/hook">
+      <small>Тело: timestamp, IP/гео, user-agent, referrer. Ретраи до 5 попыток.</small>
+    </div>
+  </div>
+  <div id="error" class="error hidden"></div>
+</section>
+<section class="features">
+  <div class="card"><b>⚡ Быстро</b><span>Кэш горячих ссылок в Redis</span></div>
+  <div class="card"><b>🛡️ Приватно</b><span>Пароли — bcrypt, JWT, API-ключи</span></div>
+  <div class="card"><b>📈 Аналитика</b><span>Гео, устройства, браузеры, referrer</span></div>
+  <div class="card"><b>🐳 Self-hosted</b><span>Docker :8096 + Traefik + Postgres/Redis</span></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('.pill').forEach(b => b.addEventListener('click', () => {
+  const p = document.getElementById(b.dataset.pane);
+  if (p) p.classList.toggle('hidden');
+  b.classList.toggle('on');
+}));
+</script>
+{% endblock %}

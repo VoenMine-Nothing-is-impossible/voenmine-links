@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Регистрация — VoenMine Links{% endblock %}
+{% block content %}
+<section class="gate">
+  <h2>Регистрация</h2>
+  <div class="form">
+    <input id="r-user" placeholder="Логин (мин. 3)">
+    <input id="r-email" type="email" placeholder="Email">
+    <input id="r-pass" type="password" placeholder="Пароль (мин. 6)">
+    <button id="r-go" class="btn primary">Создать аккаунт</button>
+    <div id="r-out" class="error hidden"></div>
+    <p class="sub">Уже есть? <a href="/login">Войти</a></p>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('r-go').onclick = async () => {
+  const body = {username: document.getElementById('r-user').value, email: document.getElementById('r-email').value, password: document.getElementById('r-pass').value};
+  const r = await fetch('/api/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (r.ok) { localStorage.setItem('token', j.access_token); location.href='/dashboard'; }
+  else { const o=document.getElementById('r-out'); o.classList.remove('hidden'); o.textContent=j.detail||'Ошибка'; }
+};
+</script>
+{% endblock %}
